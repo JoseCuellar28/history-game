@@ -111,6 +111,15 @@ export default function GameMenu() {
 
       <div className="absolute inset-0 bg-gradient-to-b from-amber-900/10 via-orange-900/15 to-yellow-900/10" />
 
+      {/* EDU PLAY Logo - Top Right */}
+      <div className="absolute top-4 right-4 z-20">
+        <img 
+           src="/images/EduPlay.png" 
+           alt="EDU PLAY Logo" 
+           className="w-32 h-24 drop-shadow-lg hover:scale-105 transition-transform duration-200 object-contain"
+         />
+      </div>
+
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8">
         {/* Title */}
