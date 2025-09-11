@@ -1,0 +1,124 @@
+/* Leaflet CSS - Estilos necesarios para el mapa */
+
+/* Importar estilos base de Leaflet */
+@import 'leaflet/dist/leaflet.css';
+
+/* Estilos personalizados para el mapa */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Personalizar controles de zoom */
+.leaflet-control-zoom {
+  border: 2px solid #92400e !important;
+  border-radius: 6px !important;
+  background: #fef3c7 !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: none !important;
+  font-weight: bold !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #fde68a !important;
+  color: #78350f !important;
+}
+
+/* Personalizar popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid #d97706 !important;
+  overflow: hidden !important;
+  background: white !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  line-height: 1.5 !important;
+  font-family: 'Inter', sans-serif !important;
+  width: 256px !important;
+  max-width: 280px !important;
+}
+
+.leaflet-popup-tip {
+  background: white !important;
+  border: 2px solid #d97706 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.leaflet-popup-close-button {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 18px !important;
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+  border-radius: 50% !important;
+  border: 1px solid #d1d5db !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  top: 8px !important;
+  right: 8px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  background: #ef4444 !important;
+  color: white !important;
+  border-color: #dc2626 !important;
+}
+
+/* Marcadores personalizados */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Animación pulse para marcadores activos */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Asegurar que el mapa ocupe todo el espacio */
+.leaflet-container .leaflet-control-container {
+  position: relative;
+}
+
+/* Mejorar la visibilidad de la atribución */
+.leaflet-control-attribution {
+  background: rgba(254, 243, 199, 0.8) !important;
+  color: #92400e !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
+  border: 1px solid #92400e !important;
+}
+
+.leaflet-control-attribution a {
+  color: #92400e !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .leaflet-control-zoom {
+    transform: scale(0.8);
+  }
+  
+  .leaflet-popup-content-wrapper {
+    max-width: 250px !important;
+  }
+}

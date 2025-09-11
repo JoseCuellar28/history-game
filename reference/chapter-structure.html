@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUPLAY - Selección de Capítulo</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main-content-wrapper">
+        <header class="game-header-top">
+            <h1>HISTORIA</h1>
+        </header>
+
+        <div class="chapter-selection-container">
+            <div class="chapter-list">
+                <div class="bimestre-group">
+                    <h3 class="bimestre-title">BIMESTRE 1</h3>
+                    <div class="chapter-item active" data-chapter-id="0">Prólogo: Introducción</div>
+                    <div class="chapter-item" data-chapter-id="1">Capítulo 1: La Historia como Ciencia</div>
+                    <div class="chapter-item" data-chapter-id="2">Capítulo 2: El Origen del Ser Humano</div>
+                    <div class="chapter-item" data-chapter-id="3">Capítulo 3: La Prehistoria I - El Paleolítico</div>
+                    <div class="chapter-item" data-chapter-id="4">Capítulo 4: La Prehistoria II - El Neolítico</div>
+                </div>
+                <div class="bimestre-group">
+                    <h3 class="bimestre-title">BIMESTRE 2</h3>
+                    <div class="chapter-item" data-chapter-id="5">Capítulo 5: Mesopotamia</div>
+                    <div class="chapter-item" data-chapter-id="6">Capítulo 6: Egipto</div>
+                    <div class="chapter-item" data-chapter-id="7">Capítulo 7: Civilizaciones de la India y China</div>
+                </div>
+                <div class="bimestre-group">
+                    <h3 class="bimestre-title">BIMESTRE 3</h3>
+                    <div class="chapter-item" data-chapter-id="8">Capítulo 8: La Civilización Griega I</div>
+                    <div class="chapter-item" data-chapter-id="9">Capítulo 9: La Civilización Griega II</div>
+                    <div class="chapter-item" data-chapter-id="10">Capítulo 10: La Civilización Romana I</div>
+                    <div class="chapter-item" data-chapter-id="11">Capítulo 11: La Civilización Romana II</div>
+                </div>
+                <div class="bimestre-group">
+                    <h3 class="bimestre-title">BIMESTRE 4</h3>
+                    <div class="chapter-item" data-chapter-id="12">Capítulo 12: El Poblamiento de América</div>
+                    <div class="chapter-item" data-chapter-id="13">Capítulo 13: Las Primeras Culturas del Antiguo Perú I</div>
+                    <div class="chapter-item" data-chapter-id="14">Capítulo 14: Las Primeras Culturas del Antiguo Perú II</div>
+                    <div class="chapter-item" data-chapter-id="15">Capítulo 15: Los Grandes Imperios Andinos</div>
+                </div>
+            </div>
+            <div class="chapter-description-panel">
+                <h3 id="description-title">Prólogo: Introducción</h3>
+                <p id="description-text">Este es el prólogo del curso de historia para 1º de secundaria. Aquí se presenta una visión general del objetivo del curso y una breve introducción a la importancia de estudiar el pasado. (Contenido de ejemplo).</p>
+                <div class="description-buttons">
+                    <button class="action-button back-button">VOLVER</button>
+                    <button class="action-button continue-button">CONTINUAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chapterItems = document.querySelectorAll('.chapter-item');
+        const descriptionTitle = document.getElementById('description-title');
+        const descriptionText = document.getElementById('description-text');
+
+        const chaptersData = {
+            "0": { title: "Prólogo: Introducción", text: "Este es el prólogo del curso de historia para 1º de secundaria. Aquí se presenta una visión general del objetivo del curso y una breve introducción a la importancia de estudiar el pasado. (Contenido de ejemplo)." },
+            "1": { title: "Capítulo 1: La Historia como Ciencia", text: "¿Qué es la historia? Fuentes históricas (materiales, orales, escritas). Ciencias auxiliares (arqueología, geografía). La importancia del tiempo." },
+            "2": { title: "Capítulo 2: El Origen del Ser Humano", text: "Teorías de la evolución. Proceso de hominización: de los australopitecos al Homo sapiens." },
+            "3": { title: "Capítulo 3: La Prehistoria I - El Paleolítico", text: "La vida de los cazadores y recolectores. El arte rupestre. El dominio del fuego." },
+            "4": { title: "Capítulo 4: La Prehistoria II - El Neolítico", text: "La Revolución Neolítica: aparición de la agricultura y la ganadería. Los primeros pueblos y la vida sedentaria." },
+            "5": { title: "Capítulo 5: Mesopotamia", text: "Ubicación entre los ríos Tigris y Éufrates. Los sumerios, acadios y babilonios. La escritura cuneiforme y el Código de Hammurabi." },
+            "6": { title: "Capítulo 6: Egipto", text: "El río Nilo y su importancia. La organización social y política: el faraón. La religión, los jeroglíficos y la construcción de las pirámides." },
+            "7": { title: "Capítulo 7: Civilizaciones de la India y China", text: "India: Civilización del Indo, el hinduismo y el budismo. China: Las primeras dinastías (Shang, Zhou), la Ruta de la Seda y la Gran Muralla." },
+            "8": { title: "Capítulo 8: La Civilización Griega I", text: "La civilización minoica y micénica. Las polis: Atenas y Esparta." },
+            "9": { title: "Capítulo 9: La Civilización Griega II", text: "Las Guerras Médicas. El Siglo de Pericles en Atenas: democracia, filosofía y teatro. Alejandro Magno y el helenismo." },
+            "10": { title: "Capítulo 10: La Civilización Romana I", text: "Orígenes de Roma: Monarquía y República. La expansión por el Mediterráneo y las Guerras Púnicas." },
+            "11": { title: "Capítulo 11: La Civilización Romana II", text: "El Imperio Romano: de Augusto a la crisis. El derecho romano, la arquitectura y el cristianismo. La caída del Imperio Romano de Occidente." },
+            "12": { title: "Capítulo 12: El Poblamiento de América", text: "Teorías sobre el origen del hombre americano (ruta de Beringia, ruta oceánica)." },
+            "13": { title: "Capítulo 13: Las Primeras Culturas del Antiguo Perú I", text: "El Periodo Lítico y Arcaico. Surgimiento de las primeras civilizaciones andinas: Caral, Chavín y Paracas." },
+            "14": { title: "Capítulo 14: Las Primeras Culturas del Antiguo Perú II", text: "Culturas regionales: Moche, Nazca y Tiahuanaco. Sus aportes en cerámica, textilería y tecnología." },
+            "15": { title: "Capítulo 15: Los Grandes Imperios Andinos", text: "El Imperio Wari y el Imperio Chimú. La antesala al surgimiento de los Incas." }
+        };
+
+        chapterItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remover 'active' de todos los elementos
+                chapterItems.forEach(i => i.classList.remove('active'));
+                // Añadir 'active' al elemento clicado
+                item.classList.add('active');
+
+                // Actualizar la descripción
+                const chapterId = item.dataset.chapterId;
+                const data = chaptersData[chapterId];
+                if (data) {
+                    descriptionTitle.textContent = data.title;
+                    descriptionText.textContent = data.text;
+                }
+            });
+        });
+
+        // Funcionalidad básica para los botones (en un juego real serían enlaces o funciones)
+        document.querySelector('.back-button').addEventListener('click', () => {
+            alert('Volver al menú principal o pantalla anterior.');
+            window.location.href = 'index.html'; // Por ejemplo, volver a index.html
+        });
+        document.querySelector('.continue-button').addEventListener('click', () => {
+            const selectedChapterId = document.querySelector('.chapter-item.active').dataset.chapterId;
+            const selectedChapterTitle = chaptersData[selectedChapterId].title;
+            alert(`Continuar con: ${selectedChapterTitle}. ¡Aquí se iniciaría el juego!`);
+            // Aquí iría la lógica para cargar el juego del capítulo seleccionado
+        });
+
+    </script>
+</body>
+</html>

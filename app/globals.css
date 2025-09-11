@@ -1,0 +1,331 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Adding Google Fonts for the history game */
+/* Removed Google Fonts CSS import - now handled by Next.js */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* History game color palette */
+  --history-primary: #5a3e1a;
+  --history-secondary: #8c6a3a;
+  --history-accent: #fce76b;
+  --history-text: #2c1810;
+  --history-light: #f4e6d3;
+  --font-bangers: "Bangers";
+  --font-open-sans: "Open Sans";
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-bangers: var(--font-bangers);
+  --font-open-sans: var(--font-open-sans);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Adding comprehensive history game styles */
+@layer components {
+  /* Main Menu Styles */
+  .history-menu {
+    font-family: var(--font-open-sans), sans-serif;
+    background: linear-gradient(135deg, #8c6a3a 0%, #5a3e1a 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .history-title {
+    font-family: var(--font-bangers), cursive;
+    font-size: 4rem;
+    color: var(--history-accent);
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+    letter-spacing: 0.2em;
+    margin-bottom: 2rem;
+  }
+
+  .history-button {
+    background: var(--history-primary);
+    color: var(--history-accent);
+    border: 2px solid var(--history-secondary);
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .history-button:hover {
+    background: var(--history-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Chapter Selection Styles */
+  .chapter-container {
+    background: var(--history-light);
+    min-height: 100vh;
+    font-family: var(--font-open-sans), sans-serif;
+  }
+
+  .chapter-header {
+    background: var(--history-primary);
+    color: var(--history-accent);
+    padding: 1rem;
+    text-align: center;
+    font-family: var(--font-bangers), cursive;
+    font-size: 2rem;
+    letter-spacing: 0.1em;
+    border-bottom: 3px solid var(--history-secondary);
+  }
+
+  .chapter-layout {
+    display: flex;
+    height: calc(100vh - 80px);
+  }
+
+  .chapter-sidebar {
+    width: 300px;
+    background: var(--history-primary);
+    color: var(--history-light);
+    overflow-y: auto;
+    border-right: 3px solid var(--history-secondary);
+  }
+
+  .bimestre-group {
+    margin-bottom: 1rem;
+  }
+
+  .bimestre-title {
+    background: var(--history-secondary);
+    color: var(--history-accent);
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--history-primary);
+  }
+
+  .chapter-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(252, 231, 107, 0.2);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+  }
+
+  .chapter-item:hover {
+    background: rgba(252, 231, 107, 0.1);
+    padding-left: 1.5rem;
+  }
+
+  .chapter-item.active {
+    background: var(--history-accent);
+    color: var(--history-primary);
+    font-weight: 600;
+    border-left: 4px solid var(--history-secondary);
+  }
+
+  .chapter-content {
+    flex: 1;
+    padding: 2rem;
+    background: var(--history-light);
+    overflow-y: auto;
+  }
+
+  .chapter-description {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid var(--history-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .chapter-description h2 {
+    color: var(--history-primary);
+    font-family: var(--font-bangers), cursive;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .chapter-description p {
+    color: var(--history-text);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .chapter-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .action-button {
+    background: var(--history-primary);
+    color: var(--history-accent);
+    border: 2px solid var(--history-secondary);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+  }
+
+  .action-button:hover {
+    background: var(--history-secondary);
+    transform: translateY(-1px);
+  }
+
+  .action-button.secondary {
+    background: transparent;
+    color: var(--history-primary);
+  }
+
+  .action-button.secondary:hover {
+    background: var(--history-primary);
+    color: var(--history-accent);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .history-title {
+      font-size: 2.5rem;
+    }
+
+    .chapter-layout {
+      flex-direction: column;
+    }
+
+    .chapter-sidebar {
+      width: 100%;
+      height: 200px;
+    }
+
+    .chapter-content {
+      padding: 1rem;
+    }
+  }
+}
