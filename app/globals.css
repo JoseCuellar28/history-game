@@ -49,6 +49,14 @@
   --history-light: #f4e6d3;
   --font-bangers: "Bangers";
   --font-open-sans: "Open Sans";
+
+  /* Brand tokens aliased to current history palette (to be refined with logo colors) */
+  /* Brand tokens tuned to pastel (like reference image) */
+  --brand-primary: #7C72B6; /* soft lilac for buttons */
+  --brand-secondary: #A79EDB; /* lilac light for hovers */
+  --brand-accent: #FAE7A5; /* butter yellow for borders/fills */
+  --brand-dark: #4B3F73; /* muted indigo for text */
+  --brand-light: #FFF7E6; /* very light cream for backgrounds */
 }
 
 .dark {

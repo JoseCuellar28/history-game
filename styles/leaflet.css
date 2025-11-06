@@ -12,28 +12,28 @@
 
 /* Personalizar controles de zoom */
 .leaflet-control-zoom {
-  border: 2px solid #92400e !important;
+  border: 2px solid var(--brand-secondary) !important;
   border-radius: 6px !important;
-  background: #fef3c7 !important;
+  background: var(--brand-light) !important;
 }
 
 .leaflet-control-zoom a {
-  background-color: #fef3c7 !important;
-  color: #92400e !important;
+  background-color: var(--brand-light) !important;
+  color: var(--brand-secondary) !important;
   border: none !important;
   font-weight: bold !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #fde68a !important;
-  color: #78350f !important;
+  background-color: var(--brand-accent) !important;
+  color: var(--brand-primary) !important;
 }
 
 /* Personalizar popup */
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
-  border: 2px solid #d97706 !important;
+  border: 2px solid var(--brand-secondary) !important;
   overflow: hidden !important;
   background: white !important;
 }
@@ -48,7 +48,7 @@
 
 .leaflet-popup-tip {
   background: white !important;
-  border: 2px solid #d97706 !important;
+  border: 2px solid var(--brand-secondary) !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
   width: 12px !important;
   height: 12px !important;
@@ -101,15 +101,15 @@
 
 /* Mejorar la visibilidad de la atribución */
 .leaflet-control-attribution {
-  background: rgba(254, 243, 199, 0.8) !important;
-  color: #92400e !important;
+  background: var(--brand-light) !important;
+  color: var(--brand-secondary) !important;
   font-size: 10px !important;
   border-radius: 4px !important;
-  border: 1px solid #92400e !important;
+  border: 1px solid var(--brand-secondary) !important;
 }
 
 .leaflet-control-attribution a {
-  color: #92400e !important;
+  color: var(--brand-secondary) !important;
 }
 
 /* Responsive design */
