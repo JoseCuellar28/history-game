@@ -194,14 +194,14 @@ const WorldMap: React.FC<WorldMapProps> = ({ currentChapter }) => {
 
   if (!isClient || !L) {
     return (
-      <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 rounded-lg border-4 border-amber-700 overflow-hidden relative flex items-center justify-center">
-        <div className="text-amber-800 font-bold">Cargando mapa...</div>
+      <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 rounded-lg border-4 border-[var(--brand-primary)] overflow-hidden relative flex items-center justify-center">
+        <div className="text-[var(--brand-primary)] font-bold">Cargando mapa...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full rounded-lg border-4 border-amber-700 overflow-hidden relative">
+    <div className="w-full h-full rounded-lg border-4 border-[var(--brand-primary)] overflow-hidden relative">
       {/* Mapa real de OpenStreetMap */}
       <MapContainer
         center={[35, 25]} // Centro en el Mediterráneo
