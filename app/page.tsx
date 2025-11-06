@@ -1,24 +1,146 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import WorldMap from "@/components/WorldMap"
+
+// Tipos y configuración de niveles de dificultad
+type Level = "elementary" | "lower" | "upper" | "high"
+
+const difficultyConfig: Record<Level, {
+  passRatio: number
+  scorePerCorrect: number
+  optionsLimit?: number
+  shuffleOptions: boolean
+}> = {
+  elementary: { passRatio: 0.6, scorePerCorrect: 50, optionsLimit: undefined, shuffleOptions: false },
+  lower: { passRatio: 0.6, scorePerCorrect: 50, optionsLimit: 3, shuffleOptions: true },
+  upper: { passRatio: 0.7, scorePerCorrect: 60, optionsLimit: 4, shuffleOptions: true },
+  high: { passRatio: 0.8, scorePerCorrect: 70, optionsLimit: 4, shuffleOptions: true },
+}
+
+type CourseId = "matematica" | "comunicacion" | "historia" | "ciencia"
+
+const bimestreToCourse: Record<number, CourseId> = {
+  1: "matematica",
+  2: "historia", // Mantener Historia con sus preguntas reales
+  3: "comunicacion",
+  4: "ciencia",
+}
+
+const courseConfig: Record<CourseId, {
+  name: string
+  icon: string
+  themeColor: string
+  supportedLevels: Level[]
+  description?: string
+}> = {
+  matematica: { name: "Matemática", icon: "📐", themeColor: "#10b981", supportedLevels: ["elementary", "lower", "upper", "high"] },
+  comunicacion: { name: "Comunicación", icon: "✏️", themeColor: "#f59e0b", supportedLevels: ["elementary", "lower", "upper", "high"] },
+  historia: { name: "Historia", icon: "📜", themeColor: "#8b5cf6", supportedLevels: ["elementary", "lower", "upper", "high"] },
+  ciencia: { name: "Ciencia", icon: "🧪", themeColor: "#06b6d4", supportedLevels: ["elementary", "lower", "upper", "high"] },
+}
+
+// Temas sugeridos por curso (para alinear pestañas posteriormente)
+const courseThemes: Record<CourseId, string[]> = {
+  matematica: ["Numeración", "Sumas y restas", "Figuras geométricas", "Patrones"],
+  comunicacion: ["Comprensión lectora", "Ortografía", "Sinónimos y antónimos", "Mayúsculas y puntuación"],
+  historia: [], // Historia mantiene sus capítulos actuales más abajo
+  ciencia: ["Ecosistemas", "Estados de la materia", "Cuerpo humano", "Energía y fuentes"],
+}
+
+type DifficultyRule = {
+  passRatio: number
+  scorePerCorrect: number
+  optionsLimit?: number
+  shuffleOptions: boolean
+}
+
+const difficultyByCourse: Partial<Record<CourseId, Partial<Record<Level, Partial<DifficultyRule>>>>> = {}
+
+type Question = { question: string; options: string[]; correct: number }
+
+const questionsByCourse: Record<CourseId, Record<string, Question[]>> = {
+  matematica: {
+    "Numeración": [
+      { question: "¿Qué valor tiene el 5 en 352?", options: ["Cientos", "Decenas", "Unidades"], correct: 1 },
+      { question: "¿Cuál es el número que sigue a 299?", options: ["300", "301", "298"], correct: 0 },
+    ],
+    "Sumas y restas": [
+      { question: "7 + 6 =", options: ["11", "12", "13"], correct: 2 },
+      { question: "15 − 9 =", options: ["6", "5", "7"], correct: 0 },
+    ],
+    "Figuras geométricas": [
+      { question: "¿Cuántos lados tiene un triángulo?", options: ["3", "4", "5"], correct: 0 },
+      { question: "¿Cuál es una figura con cuatro lados iguales?", options: ["Rectángulo", "Cuadrado", "Pentágono"], correct: 1 },
+    ],
+    "Patrones": [
+      { question: "¿Qué sigue? 2, 4, 6, __", options: ["7", "8", "9"], correct: 1 },
+      { question: "¿Qué sigue? ▲, ●, ▲, ●, __", options: ["▲", "■", "●"], correct: 0 },
+    ],
+  },
+  comunicacion: {
+    "Comprensión lectora": [
+      { question: "\"El gato se escondió porque tenía miedo.\" ¿Por qué se escondió?", options: ["Porque tenía hambre", "Porque tenía miedo", "Porque quería jugar"], correct: 1 },
+      { question: "¿Quién es el personaje?", options: ["Un perro", "Un gato", "Un ratón"], correct: 1 },
+    ],
+    "Ortografía": [
+      { question: "Elige la correcta: \"B__olador\"", options: ["B", "V", "C"], correct: 0 },
+      { question: "Elige la correcta: \"Ca__a\" (lugar de pesca)", options: ["S", "Z", "C"], correct: 2 },
+    ],
+    "Sinónimos y antónimos": [
+      { question: "Sinónimo de \"feliz\"", options: ["Contento", "Triste", "Enojado"], correct: 0 },
+      { question: "Antónimo de \"alto\"", options: ["Grande", "Pequeño", "Largo"], correct: 1 },
+    ],
+    "Mayúsculas y puntuación": [
+      { question: "¿Dónde va mayúscula? \"__ima vez fui al parque.\"", options: ["Últ", "Última", "última"], correct: 1 },
+      { question: "¿Qué signo falta? \"¿Cómo estás__\"", options: ["!", "?", "."], correct: 1 },
+    ],
+  },
+  historia: {
+    // Historia usa el banco actual definido más abajo en GameQuestions (Mesopotamia, Egipto, etc.)
+  },
+  ciencia: {
+    "Ecosistemas": [
+      { question: "¿Cuál es un ecosistema?", options: ["Desierto", "Casa", "Auto"], correct: 0 },
+      { question: "¿Qué necesitan las plantas?", options: ["Luz y agua", "Azúcar y sal", "Metal y plástico"], correct: 0 },
+    ],
+    "Estados de la materia": [
+      { question: "¿Qué estado es el agua del mar?", options: ["Sólido", "Líquido", "Gas"], correct: 1 },
+      { question: "El vapor es agua en estado", options: ["Sólido", "Líquido", "Gaseoso"], correct: 2 },
+    ],
+    "Cuerpo humano": [
+      { question: "¿Qué órgano bombea la sangre?", options: ["Pulmones", "Estómago", "Corazón"], correct: 2 },
+      { question: "¿Para qué sirven los pulmones?", options: ["Para respirar", "Para comer", "Para pensar"], correct: 0 },
+    ],
+    "Energía y fuentes": [
+      { question: "¿Cuál es una fuente renovable?", options: ["Petróleo", "Carbón", "Sol"], correct: 2 },
+      { question: "¿Qué usamos para encender focos?", options: ["Electricidad", "Agua", "Aire"], correct: 0 },
+    ],
+  },
+}
 
 
 export default function GameMenu() {
-  const [currentScreen, setCurrentScreen] = useState<"menu" | "chapters" | "lobby" | "questions" | "bimestre-complete">("menu")
+  const [currentScreen, setCurrentScreen] = useState<"menu" | "chapters" | "lobby" | "questions" | "chapter-complete" | "bimestre-complete">("menu")
   const [selectedChapter, setSelectedChapter] = useState("")
   const [chapterProgress, setChapterProgress] = useState<{[key: string]: {completed: boolean, score: number, totalQuestions: number}}>({})
   const [totalScore, setTotalScore] = useState(0)
   const [completedBimestre, setCompletedBimestre] = useState<number | null>(null)
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null)
+  const [nextChapter, setNextChapter] = useState<string | null>(null)
+  const [lastCompletedChapter, setLastCompletedChapter] = useState<string | null>(null)
 
   if (currentScreen === "questions") {
+    const effectiveLevel: Level = selectedLevel ?? "elementary"
     return (
       <GameQuestions 
         onBack={() => setCurrentScreen("lobby")} 
         chapter={selectedChapter}
+        selectedLevel={effectiveLevel}
         onComplete={(score: number, totalQuestions: number) => {
-          const minimumScore = Math.ceil(totalQuestions * 0.6) // 60% mínimo
+          const { passRatio, scorePerCorrect } = difficultyConfig[effectiveLevel]
+          const minimumScore = Math.ceil(totalQuestions * passRatio) 
           
           if (score < minimumScore) {
             // No completar el capítulo si no alcanza el puntaje mínimo
@@ -32,29 +154,39 @@ export default function GameMenu() {
             [selectedChapter]: { completed: true, score, totalQuestions }
           }
           setChapterProgress(newProgress)
-          setTotalScore(prev => prev + score * 50) // 50 puntos por respuesta correcta
+          setTotalScore(prev => prev + score * scorePerCorrect)
           
-          // Verificar si se completó el bimestre
-          const bimestres = {
-            1: ["La Prehistoria", "El Paleolítico", "El Neolítico", "La Edad de los Metales"],
-            2: ["Mesopotamia", "Egipto", "Esparta", "Atenas", "La Migración"],
-            3: ["Grecia", "Roma", "El Imperio Romano", "La Caída del Imperio"],
-            4: ["Culturas Preincas", "Los Incas", "El Tahuantinsuyo", "La Conquista"],
+          // Verificar bimestre y determinar siguiente capítulo usando el modelo dinámico por curso
+          const bimestres: Record<number, string[]> = {
+            1: courseThemes.matematica,
+            2: ["Mesopotamia", "Egipto", "Esparta", "Atenas", "La Migración"], // Historia intacta
+            3: courseThemes.comunicacion,
+            4: courseThemes.ciencia,
           }
-          
-          for (const [bimestreNum, chapters] of Object.entries(bimestres)) {
+
+          for (const [bimestreNumStr, chapters] of Object.entries(bimestres)) {
             if (chapters.includes(selectedChapter)) {
-              const allCompleted = chapters.every(chapter => 
-                newProgress[chapter]?.completed || chapter === selectedChapter
-              )
+              const bimestreNum = parseInt(bimestreNumStr)
+              const allCompleted = chapters.every(ch => newProgress[ch]?.completed)
               if (allCompleted) {
-                setCompletedBimestre(parseInt(bimestreNum))
+                setCompletedBimestre(bimestreNum)
                 setCurrentScreen("bimestre-complete")
                 return
               }
+
+              const idx = chapters.indexOf(selectedChapter)
+              const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null
+              setNextChapter(next)
+              setLastCompletedChapter(selectedChapter)
+              if (next) {
+                setSelectedChapter(next)
+              }
+              setCurrentScreen("chapter-complete")
+              return
             }
           }
-          
+
+          // Si no se encontró el bimestre (caso excepcional), regresar al lobby
           setCurrentScreen("lobby")
         }}
       />
@@ -74,6 +206,24 @@ export default function GameMenu() {
     )
   }
 
+  if (currentScreen === "chapter-complete") {
+    return (
+      <ChapterComplete
+        current={lastCompletedChapter ?? ""}
+        next={nextChapter}
+        onContinueNext={() => {
+          setCurrentScreen("questions")
+          setLastCompletedChapter(null)
+        }}
+        onBackToLobby={() => {
+          setCurrentScreen("lobby")
+          setNextChapter(null)
+          setLastCompletedChapter(null)
+        }}
+      />
+    )
+  }
+
   if (currentScreen === "lobby") {
     return (
       <GameLobby
@@ -83,6 +233,7 @@ export default function GameMenu() {
         chapterProgress={chapterProgress}
         totalScore={totalScore}
         onSelectChapter={(chapter) => setSelectedChapter(chapter)}
+        selectedLevel={selectedLevel}
       />
     )
   }
@@ -91,6 +242,8 @@ export default function GameMenu() {
     return (
       <ChapterSelection
         onBack={() => setCurrentScreen("menu")}
+        selectedLevel={selectedLevel}
+        onSelectLevel={(lvl) => setSelectedLevel(lvl)}
         onContinue={(chapter) => {
           setSelectedChapter(chapter)
           setCurrentScreen("lobby")
@@ -100,7 +253,7 @@ export default function GameMenu() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-amber-200 via-orange-200 to-yellow-300">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-secondary)] to-[var(--brand-light)]">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
@@ -109,49 +262,45 @@ export default function GameMenu() {
         }}
       />
 
-      <div className="absolute inset-0 bg-gradient-to-b from-amber-900/10 via-orange-900/15 to-yellow-900/10" />
-
-      {/* EDU PLAY Logo - Top Right */}
-      <div className="absolute top-4 right-4 z-20">
-        <img 
-           src="/images/EduPlay.png" 
-           alt="EDU PLAY Logo" 
-           className="w-32 h-24 drop-shadow-lg hover:scale-105 transition-transform duration-200 object-contain"
-         />
-      </div>
+      {/* Overlay más claro para evitar sensación de fondo negro */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[var(--brand-light)]/60 via-[var(--brand-accent)]/40 to-[var(--brand-light)]/60" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8">
-        {/* Title */}
-        <h1
-          className="text-6xl md:text-8xl font-bold text-amber-900 mb-16 tracking-wider text-center"
-          style={{
-            textShadow:
-              "3px 3px 0px #92400e, -1px -1px 0px #fbbf24, 1px -1px 0px #fbbf24, -1px 1px 0px #fbbf24, 1px 1px 0px #fbbf24",
-            WebkitTextStroke: "2px #92400e",
-          }}
-        >
-          HISTORY
-        </h1>
+      <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-8 pt-10">
+        {/* Title dentro de un panel amarillo con borde lila */}
+        <div className="bg-[var(--brand-accent)] border-4 border-[var(--brand-primary)] rounded-xl px-6 py-4 shadow-xl">
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-wider text-center text-[var(--brand-dark)]">
+            APRENDE JUGANDO
+          </h1>
+        </div>
+
+        {/* Logo debajo del título */}
+        <div className="mt-4">
+          <img
+            src="/images/EduPlay.png"
+            alt="EDU PLAY Logo"
+            className="w-[20rem] h-[16rem] md:w-[24rem] md:h-[18rem] lg:w-[28rem] lg:h-[20rem] object-contain drop-shadow-md"
+          />
+        </div>
 
         {/* Menu Buttons */}
-        <div className="flex flex-col gap-4 w-full max-w-sm">
+        <div className="flex flex-col gap-4 w-full max-w-sm mt-8">
           <Button
-            className="h-14 text-xl font-semibold bg-amber-800/90 hover:bg-amber-700 text-amber-100 border-2 border-amber-600 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
+            className="h-14 text-xl font-semibold bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-white border-2 border-[var(--brand-accent)] shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
             onClick={() => setCurrentScreen("chapters")}
           >
             PLAY
           </Button>
 
           <Button
-            className="h-14 text-xl font-semibold bg-amber-800/90 hover:bg-amber-700 text-amber-100 border-2 border-amber-600 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
+            className="h-14 text-xl font-semibold bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-white border-2 border-[var(--brand-accent)] shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
             onClick={() => console.log("Configuration clicked")}
           >
             CONFIGURATION
           </Button>
 
           <Button
-            className="h-14 text-xl font-semibold bg-amber-800/90 hover:bg-amber-700 text-amber-100 border-2 border-amber-600 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
+            className="h-14 text-xl font-semibold bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-white border-2 border-[var(--brand-accent)] shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105"
             onClick={() => console.log("Exit clicked")}
           >
             EXIT
@@ -162,14 +311,79 @@ export default function GameMenu() {
   )
 }
 
-function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContinue: (chapter: string) => void }) {
+function ChapterComplete({ current, next, onContinueNext, onBackToLobby }: {
+  current: string
+  next: string | null
+  onContinueNext: () => void
+  onBackToLobby: () => void
+}) {
+  const [autoAdvance, setAutoAdvance] = useState(true)
+  const [seconds, setSeconds] = useState(3)
+
+  useEffect(() => {
+    if (!next || !autoAdvance) return
+    if (seconds <= 0) {
+      onContinueNext()
+      return
+    }
+    const id = setTimeout(() => setSeconds(s => s - 1), 1000)
+    return () => clearTimeout(id)
+  }, [next, autoAdvance, seconds])
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-accent)] to-[var(--brand-light)] flex items-center justify-center p-6">
+      <div className="bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
+        <h2 className="text-3xl font-bold text-[var(--brand-dark)] mb-4">¡Felicitaciones!</h2>
+        <div className="text-6xl mb-4">🎉</div>
+        <p className="text-lg text-[var(--brand-primary)] mb-2">Has completado: <span className="font-bold">{current}</span></p>
+        {next ? (
+          <p className="text-lg text-[var(--brand-primary)] mb-6">Siguiente capítulo: <span className="font-bold">{next}</span></p>
+        ) : (
+          <p className="text-lg text-[var(--brand-primary)] mb-6">Continúa con más capítulos desde el lobby.</p>
+        )}
+        {next && autoAdvance && (
+          <div className="text-sm text-[var(--brand-primary)] mb-4">Avanzando automáticamente en {seconds}s...</div>
+        )}
+        <div className="flex gap-4">
+          {next && (
+            <Button
+              onClick={onContinueNext}
+              className="flex-1 bg-[var(--brand-secondary)] hover:bg-[var(--brand-primary)] text-white font-bold py-3"
+            >
+              SEGUIR AL SIGUIENTE CAPÍTULO
+            </Button>
+          )}
+          <Button
+            onClick={onBackToLobby}
+            className="flex-1 bg-[var(--brand-dark)] hover:bg-[var(--brand-primary)] text-[var(--brand-light)] font-bold py-3"
+          >
+            VOLVER AL LOBBY
+          </Button>
+        </div>
+        {next && (
+          <div className="mt-4">
+            <Button
+              onClick={() => setAutoAdvance(false)}
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-[var(--brand-light)] font-bold px-6 py-2"
+            >
+              CANCELAR AUTO-AVANCE
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ChapterSelection({ onBack, onContinue, selectedLevel, onSelectLevel }: { onBack: () => void; onContinue: (chapter: string) => void; selectedLevel: Level | null; onSelectLevel: (level: Level | null) => void }) {
+  // Bimestres dinámicos por curso; Historia se mantiene con sus capítulos reales
   const [expandedBimestre, setExpandedBimestre] = useState<number | null>(1)
   const [selectedChapter, setSelectedChapter] = useState("")
 
   const bimestres = {
     1: {
       title: "BIMESTRE I",
-      chapters: ["La Prehistoria", "El Paleolítico", "El Neolítico", "La Edad de los Metales"],
+      chapters: courseThemes.matematica,
     },
     2: {
       title: "BIMESTRE II",
@@ -177,13 +391,31 @@ function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContin
     },
     3: {
       title: "BIMESTRE III",
-      chapters: ["Grecia", "Roma", "El Imperio Romano", "La Caída del Imperio"],
+      chapters: courseThemes.comunicacion,
     },
     4: {
       title: "BIMESTRE IV",
-      chapters: ["Culturas Preincas", "Los Incas", "El Tahuantinsuyo", "La Conquista"],
+      chapters: courseThemes.ciencia,
     },
   }
+
+  // Etiquetas visibles: mostrar cursos en los botones de bimestres (derivados del mapping)
+  const courseNames: Record<number, string> = Object.fromEntries(
+    Object.keys(bimestres).map((n) => {
+      const num = Number(n)
+      const course = bimestreToCourse[num]
+      return [num, courseConfig[course].name]
+    })
+  ) as Record<number, string>
+
+  // Íconos referenciales por curso
+  const courseIcons: Record<number, string> = Object.fromEntries(
+    Object.keys(bimestres).map((n) => {
+      const num = Number(n)
+      const course = bimestreToCourse[num]
+      return [num, courseConfig[course].icon]
+    })
+  ) as Record<number, string>
 
   const chapterContent = {
     "La Prehistoria":
@@ -222,15 +454,21 @@ function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContin
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-900 via-amber-800 to-amber-900 p-4">
+    <div
+      className="min-h-screen relative p-4 bg-cover bg-center"
+      style={{ backgroundImage: "url('/images/clean-desert-background.jpg')" }}
+    >
+      {/* Overlay suave para mejorar legibilidad sobre la imagen */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[var(--brand-light)]/70 via-[var(--brand-accent)]/60 to-[var(--brand-light)]/70" />
+      <div className="relative z-10">
       {/* Header */}
-      <div className="bg-amber-900 border-4 border-amber-700 rounded-lg mb-6 p-4 shadow-2xl">
-        <h1 className="text-4xl font-bold text-amber-100 text-center tracking-wider">HISTORIA</h1>
+      <div className="bg-[var(--brand-primary)] border-4 border-[var(--brand-accent)] rounded-lg mb-6 p-4 shadow-2xl">
+        <h1 className="text-4xl font-bold text-[var(--brand-light)] text-center tracking-wider">SELECCION DE CURSOS</h1>
       </div>
 
       <div className="flex gap-6 max-w-7xl mx-auto">
         {/* Sidebar */}
-        <div className="w-80 bg-amber-800/90 border-4 border-amber-700 rounded-lg p-4 shadow-2xl">
+        <div className="w-80 bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-4 shadow-2xl">
           <div className="space-y-4">
             {Object.entries(bimestres).map(([bimestreNum, bimestre]) => (
               <div key={bimestreNum} className="space-y-2">
@@ -242,15 +480,19 @@ function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContin
                     } else {
                       setExpandedBimestre(num)
                       setSelectedChapter(bimestre.chapters[0])
+                      onSelectLevel(null) // exigir re-selección de nivel por capítulo
                     }
                   }}
                   className={`w-full text-left p-3 rounded-lg font-bold text-lg transition-all duration-200 flex items-center justify-between ${
                     expandedBimestre === Number(bimestreNum)
-                      ? "bg-amber-600 text-amber-100 shadow-lg"
-                      : "bg-amber-700/70 text-amber-200 hover:bg-amber-600/80 hover:text-amber-100"
+                      ? "bg-[var(--brand-secondary)] text-[var(--brand-light)] shadow-lg"
+                      : "bg-[var(--brand-primary)]/70 text-[var(--brand-light)]/80 hover:bg-[var(--brand-secondary)]/80 hover:text-[var(--brand-light)]"
                   }`}
                 >
-                  <span>{bimestre.title}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-2xl">{courseIcons[Number(bimestreNum)]}</span>
+                    <span>{courseNames[Number(bimestreNum)]}</span>
+                  </span>
                   <span className="text-xl">{expandedBimestre === Number(bimestreNum) ? "−" : "+"}</span>
                 </button>
 
@@ -259,11 +501,11 @@ function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContin
                     {bimestre.chapters.map((chapter) => (
                       <button
                         key={chapter}
-                        onClick={() => setSelectedChapter(chapter)}
+                        onClick={() => { setSelectedChapter(chapter); onSelectLevel(null) }}
                         className={`w-full text-left p-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           selectedChapter === chapter
-                            ? "bg-amber-500 text-amber-100 shadow-md"
-                            : "bg-amber-700/50 text-amber-200 hover:bg-amber-600/60 hover:text-amber-100"
+                            ? "bg-[var(--brand-secondary)] text-[var(--brand-light)] shadow-md"
+                            : "bg-[var(--brand-primary)]/70 text-[var(--brand-light)]/90 hover:bg-[var(--brand-secondary)]/80 hover:text-[var(--brand-light)]"
                         }`}
                       >
                         {chapter}
@@ -277,29 +519,64 @@ function ChapterSelection({ onBack, onContinue }: { onBack: () => void; onContin
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 bg-amber-100 border-4 border-amber-700 rounded-lg p-8 shadow-2xl">
-          <h2 className="text-3xl font-bold text-amber-900 mb-6 text-center">{selectedChapter}</h2>
+        <div className="flex-1 bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-8 shadow-2xl">
+          <h2 className="text-3xl font-bold text-[var(--brand-dark)] mb-6 text-center">{selectedChapter || "Selecciona un capítulo"}</h2>
 
-          <div className="text-amber-800 text-lg leading-relaxed mb-8 font-medium">
-            {chapterContent[selectedChapter as keyof typeof chapterContent]}
+          <div className="text-[var(--brand-primary)] text-lg leading-relaxed mb-8 font-medium">
+            {selectedChapter && chapterContent[selectedChapter as keyof typeof chapterContent]}
+          </div>
+
+          {/* Selector de Nivel */}
+          <div className="mb-8">
+            <div className="text-center mb-4 font-bold text-[var(--brand-dark)]">Selecciona nivel</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                { key: "elementary", label: "Elemental", icon: "🎈" },
+                { key: "lower", label: "Bajo", icon: "⬇️" },
+                { key: "upper", label: "Medio", icon: "⬆️" },
+                { key: "high", label: "Alto", icon: "🎓" },
+              ] as { key: Level; label: string; icon: string }[]).map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => onSelectLevel(key)}
+                  title={`Nivel ${label}`}
+                  aria-label={`Seleccionar nivel ${label}`}
+                  className={`px-4 py-3 rounded-lg border-2 font-bold transition-all duration-200 flex items-center gap-2 ${
+                    selectedLevel === key
+                      ? "bg-[var(--brand-secondary)] border-[var(--brand-primary)] text-white shadow-lg"
+                      : "bg-[var(--brand-light)] border-[var(--brand-secondary)] text-[var(--brand-dark)] hover:bg-[var(--brand-accent)]/30"
+                  }`}
+                >
+                  <span className="w-7 h-7 flex items-center justify-center rounded-full bg-[var(--brand-accent)]/30 border border-[var(--brand-primary)] text-base">
+                    {icon}
+                  </span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            {!selectedLevel && (
+              <div className="mt-2 text-center text-sm text-[var(--brand-primary)]">Selecciona un nivel para continuar</div>
+            )}
           </div>
 
           <div className="flex justify-center gap-4">
             <Button
               onClick={onBack}
-              className="px-8 py-3 text-lg font-semibold bg-amber-700 hover:bg-amber-600 text-amber-100 border-2 border-amber-600 shadow-lg transition-all duration-200 hover:scale-105"
+              className="px-8 py-3 text-lg font-semibold bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-[var(--brand-light)] border-2 border-[var(--brand-secondary)] shadow-lg transition-all duration-200 hover:scale-105"
             >
               VOLVER
             </Button>
 
             <Button
               onClick={() => onContinue(selectedChapter)}
-              className="px-8 py-3 text-lg font-semibold bg-amber-800 hover:bg-amber-700 text-amber-100 border-2 border-amber-600 shadow-lg transition-all duration-200 hover:scale-105"
+              disabled={!selectedChapter || !selectedLevel}
+              className="px-8 py-3 text-lg font-semibold bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-[var(--brand-light)] border-2 border-[var(--brand-secondary)] shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               CONTINUAR
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
@@ -327,13 +604,13 @@ function BimestreComplete({ bimestre, totalScore, onBackToMenu }: {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-accent)] to-[var(--brand-light)] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Estrellas de fondo */}
       <div className="absolute inset-0">
         {Array.from({ length: 50 }, (_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-pulse"
+            className="absolute w-2 h-2 bg-[var(--brand-accent)]/70 rounded-full animate-pulse"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -344,28 +621,28 @@ function BimestreComplete({ bimestre, totalScore, onBackToMenu }: {
       </div>
 
       {/* Contenido principal */}
-      <div className="bg-gradient-to-br from-yellow-100 to-orange-100 border-8 border-yellow-400 rounded-3xl p-8 max-w-2xl w-full text-center shadow-2xl relative z-10">
+      <div className="bg-gradient-to-br from-[var(--brand-light)] to-[var(--brand-accent)] border-8 border-[var(--brand-accent)] rounded-3xl p-8 max-w-2xl w-full text-center shadow-2xl relative z-10">
         {/* Título de celebración */}
         <div className="text-6xl mb-6 animate-bounce">
           🎉🏆🎊
         </div>
         
-        <h1 className="text-4xl font-bold text-purple-800 mb-4 animate-pulse">
+        <h1 className="text-4xl font-bold text-[var(--brand-primary)] mb-4 animate-pulse">
           ¡FELICITACIONES!
         </h1>
         
-        <h2 className="text-2xl font-bold text-blue-800 mb-6">
+        <h2 className="text-2xl font-bold text-[var(--brand-dark)] mb-6">
           ¡HAS COMPLETADO EL {bimestreNames[bimestre as keyof typeof bimestreNames]}!
         </h2>
 
         {/* Mensaje motivacional */}
-        <div className="bg-white/80 rounded-2xl p-6 mb-6 border-4 border-yellow-300">
+        <div className="bg-white/80 rounded-2xl p-6 mb-6 border-4 border-[var(--brand-accent)]">
           <p className="text-lg text-gray-800 mb-4 leading-relaxed">
             {motivationalMessages[bimestre as keyof typeof motivationalMessages]}
           </p>
           
           <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="bg-yellow-400 rounded-full px-4 py-2 font-bold text-purple-800">
+            <div className="bg-[var(--brand-accent)] rounded-full px-4 py-2 font-bold text-[var(--brand-primary)]">
               ⭐ {totalScore} PUNTOS TOTALES
             </div>
             <div className="text-4xl animate-spin">
@@ -375,11 +652,11 @@ function BimestreComplete({ bimestre, totalScore, onBackToMenu }: {
         </div>
 
         {/* Mensaje final */}
-        <div className="bg-gradient-to-r from-yellow-200 to-yellow-300 rounded-2xl p-6 mb-6 border-4 border-yellow-500">
-          <h3 className="text-xl font-bold text-yellow-800 mb-3">
+        <div className="bg-gradient-to-r from-[var(--brand-light)] to-[var(--brand-accent)] rounded-2xl p-6 mb-6 border-4 border-[var(--brand-accent)]">
+          <h3 className="text-xl font-bold text-[var(--brand-dark)] mb-3">
             👑 ¡EXCELENTE TRABAJO!
           </h3>
-          <p className="text-lg text-yellow-700">
+          <p className="text-lg text-[var(--brand-primary)]">
             Has completado el {bimestreNames[bimestre as keyof typeof bimestreNames]}. ¡Sigue así!
           </p>
         </div>
@@ -388,7 +665,7 @@ function BimestreComplete({ bimestre, totalScore, onBackToMenu }: {
         <div className="flex gap-4 justify-center">
           <Button
             onClick={onBackToMenu}
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-2xl text-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-white font-bold py-4 px-8 rounded-2xl text-xl shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             🏠 MENÚ PRINCIPAL
           </Button>
@@ -403,19 +680,65 @@ function BimestreComplete({ bimestre, totalScore, onBackToMenu }: {
   )
 }
 
-function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, onSelectChapter }: { 
+// Panel visual por curso para reemplazar el mapa en cursos no Historia
+function CoursePanel({ course, chapter }: { course: CourseId; chapter: string }) {
+  const config = courseConfig[course]
+  const headerStyle = { backgroundColor: `${config.themeColor}20`, borderColor: config.themeColor }
+
+  return (
+    <div className="w-[600px] h-[500px] bg-white/80 border-4 rounded-xl shadow-xl overflow-hidden flex flex-col" style={{ borderColor: config.themeColor }}>
+      <div className="px-4 py-2 font-bold text-[var(--brand-dark)] border-b" style={headerStyle as any}>
+        {config.icon} Panel de {config.name}
+        <span className="ml-2 text-sm text-gray-600">Tema actual: {chapter}</span>
+      </div>
+      <div className="p-6 flex-1 grid place-items-center text-center">
+        {course === "matematica" && (
+          <div>
+            <div className="text-6xl mb-4">📐🔢⬛️🔺🟦</div>
+            <div className="text-[var(--brand-primary)] font-bold mb-2">Figuras, patrones y operaciones</div>
+            <p className="text-sm text-gray-700">Explora {chapter} con retos visuales y prácticos.</p>
+          </div>
+        )}
+        {course === "comunicacion" && (
+          <div>
+            <div className="text-6xl mb-4">📖✍️🔤</div>
+            <div className="text-[var(--brand-primary)] font-bold mb-2">Lectura, ortografía y vocabulario</div>
+            <p className="text-sm text-gray-700">Practica {chapter} con ejemplos claros y divertidos.</p>
+          </div>
+        )}
+        {course === "ciencia" && (
+          <div>
+            <div className="text-6xl mb-4">🧪🌿💧🔥</div>
+            <div className="text-[var(--brand-primary)] font-bold mb-2">Experimentos y observaciones</div>
+            <p className="text-sm text-gray-700">Descubre {chapter} con ilustraciones y conceptos clave.</p>
+          </div>
+        )}
+        {course === "historia" && (
+          <div>
+            <div className="text-6xl mb-4">📜🗺️🏛️</div>
+            <div className="text-[var(--brand-primary)] font-bold mb-2">Historia</div>
+            <p className="text-sm text-gray-700">Usa el mapa cuando estés en capítulos históricos.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, onSelectChapter, selectedLevel }: { 
   onBack: () => void; 
   chapter: string; 
   onStartGame: () => void;
   chapterProgress: {[key: string]: {completed: boolean, score: number, totalQuestions: number}};
   totalScore: number;
   onSelectChapter: (chapter: string) => void;
+  selectedLevel: Level | null;
 }) {
-  // Definir la estructura de bimestres y capítulos
+  // Bimestres dinámicos por curso; Historia se mantiene con sus capítulos reales
   const bimestres = {
     1: {
       title: "BIMESTRE I",
-      chapters: ["La Prehistoria", "El Paleolítico", "El Neolítico", "La Edad de los Metales"],
+      chapters: courseThemes.matematica,
     },
     2: {
       title: "BIMESTRE II", 
@@ -423,11 +746,11 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
     },
     3: {
       title: "BIMESTRE III",
-      chapters: ["Grecia", "Roma", "El Imperio Romano", "La Caída del Imperio"],
+      chapters: courseThemes.comunicacion,
     },
     4: {
       title: "BIMESTRE IV",
-      chapters: ["Culturas Preincas", "Los Incas", "El Tahuantinsuyo", "La Conquista"],
+      chapters: courseThemes.ciencia,
     },
   }
 
@@ -443,6 +766,9 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
 
   const currentBimestre = getCurrentBimestre()
   const currentChapterIndex = currentBimestre.chapters.indexOf(chapter)
+  const historyChapters = ["Mesopotamia", "Egipto", "Esparta", "Atenas", "La Migración"]
+  const isHistoriaChapter = historyChapters.includes(chapter)
+  const courseId = bimestreToCourse[currentBimestre.number as keyof typeof bimestreToCourse]
   
   // Calcular misiones completadas basado en el progreso real
   const completedMissions = currentBimestre.chapters.filter(chapterName => 
@@ -495,7 +821,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
             </div>
             
             {/* Mission Board Game */}
-            <div className="bg-amber-100/90 border-4 border-amber-700 rounded-lg p-6 w-80 shadow-2xl">
+            <div className="bg-[var(--brand-light)]/90 border-4 border-[var(--brand-secondary)] rounded-lg p-6 w-80 shadow-2xl">
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {/* Mission Path - Mostrar solo las misiones del bimestre actual */}
                 {currentBimestre.chapters.map((chapterName, i) => {
@@ -512,11 +838,11 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
                         ${
                           isCompleted
                             ? 'bg-green-500 border-green-600 text-white shadow-lg'
-                            : isCurrent
-                            ? 'bg-yellow-400 border-yellow-500 text-black shadow-lg animate-pulse'
-                            : isLocked
+                          : isCurrent
+                            ? 'bg-[var(--brand-accent)] border-[var(--brand-secondary)] text-black shadow-lg animate-pulse'
+                          : isLocked
                             ? 'bg-gray-300 border-gray-400 text-gray-500'
-                            : 'bg-blue-400 border-blue-500 text-white'
+                            : 'bg-[var(--brand-secondary)] border-[var(--brand-primary)] text-white'
                         }
                       `}
                       title={chapterName}
@@ -543,7 +869,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
                         isCompleted
                           ? 'bg-green-100 text-green-800'
                           : isCurrent
-                          ? 'bg-yellow-100 text-yellow-800 font-bold'
+                          ? 'bg-[var(--brand-light)] text-[var(--brand-dark)] font-bold'
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
@@ -556,20 +882,23 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
               {/* Progress Bar */}
               <div className="bg-gray-300 rounded-full h-3 mb-4 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-green-400 to-yellow-400 h-full transition-all duration-500"
+                  className="bg-gradient-to-r from-[var(--brand-secondary)] to-[var(--brand-accent)] h-full transition-all duration-500"
                   style={{ width: `${progressPercentage}%` }}
                 />
               </div>
               
               {/* Current Mission Info */}
-              <div className="bg-white/80 rounded-lg p-3 border-2 border-amber-600">
-                <h4 className="font-bold text-amber-800 mb-1">Misión Actual:</h4>
-                <p className="text-sm text-amber-700">{chapter || 'Selecciona un capítulo'}</p>
+              <div className="bg-white/80 rounded-lg p-3 border-2 border-[var(--brand-secondary)]">
+                <h4 className="font-bold text-[var(--brand-primary)] mb-1">Misión Actual:</h4>
+                <p className="text-sm text-[var(--brand-primary)]">{chapter || 'Selecciona un capítulo'}</p>
                 <div className="flex items-center mt-2">
-                  <div className="text-xs text-amber-600">
+                  <div className="text-xs text-[var(--brand-secondary)]">
                     Progreso: {completedMissions}/{totalMissions} misiones
                   </div>
-                  <div className="ml-auto text-yellow-600">⭐ {totalScore} pts</div>
+                  <div className="ml-auto text-[var(--brand-accent)]">⭐ {totalScore} pts</div>
+                </div>
+                <div className="mt-2 text-xs text-[var(--brand-primary)]">
+                  Nivel seleccionado: <span className="font-bold">{selectedLevel ? ({ elementary: "Elemental", lower: "Bajo", upper: "Medio", high: "Alto" } as Record<Level, string>)[selectedLevel] : "No seleccionado"}</span>
                 </div>
                 {isCurrentChapterCompleted && (
                   <div className="mt-2 text-xs text-green-600 font-bold">
@@ -580,17 +909,17 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
               
               {/* Rewards Preview */}
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="bg-yellow-200 border border-yellow-400 rounded p-2 text-center">
+                <div className="bg-[var(--brand-accent)]/40 border border-[var(--brand-accent)] rounded p-2 text-center">
                   <div className="text-lg">🏆</div>
-                  <div className="text-xs text-yellow-700">Trofeo</div>
+                  <div className="text-xs text-[var(--brand-dark)]">Trofeo</div>
                 </div>
-                <div className="bg-blue-200 border border-blue-400 rounded p-2 text-center">
+                <div className="bg-[var(--brand-secondary)]/40 border border-[var(--brand-secondary)] rounded p-2 text-center">
                   <div className="text-lg">💎</div>
-                  <div className="text-xs text-blue-700">Gema</div>
+                  <div className="text-xs text-[var(--brand-dark)]">Gema</div>
                 </div>
-                <div className="bg-purple-200 border border-purple-400 rounded p-2 text-center">
+                <div className="bg-[var(--brand-primary)]/40 border border-[var(--brand-primary)] rounded p-2 text-center">
                   <div className="text-lg">🎖️</div>
-                  <div className="text-xs text-purple-700">Medalla</div>
+                  <div className="text-xs text-[var(--brand-dark)]">Medalla</div>
                 </div>
               </div>
             </div>
@@ -600,7 +929,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
               {!isCurrentChapterCompleted ? (
                 <Button
                   onClick={onStartGame}
-                  className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-2xl px-12 py-4 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 w-full"
+                  className="bg-[var(--brand-accent)] hover:bg-[var(--brand-secondary)] text-black hover:text-white font-bold text-2xl px-12 py-4 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 w-full"
                 >
                   JUGAR
                 </Button>
@@ -608,14 +937,14 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
                 <div className="space-y-3">
                   <Button
                     onClick={onStartGame}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-[var(--brand-secondary)] to-[var(--brand-primary)] hover:from-[var(--brand-primary)] hover:to-[var(--brand-primary)] text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
                   >
                     🔄 REPETIR CAPÍTULO
                   </Button>
                   {nextChapter && (
                     <Button
                       onClick={() => onSelectChapter(nextChapter)}
-                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
+                      className="w-full bg-gradient-to-r from-[var(--brand-secondary)] to-[var(--brand-primary)] hover:from-[var(--brand-primary)] hover:to-[var(--brand-primary)] text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
                     >
                       ➡️ SIGUIENTE CAPÍTULO
                     </Button>
@@ -632,13 +961,23 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
             </div>
           </div>
 
-          {/* Right Side - World Map */}
+          {/* Right Side - Visual Panel / World Map */}
           <div className="flex-shrink-0 space-y-4">
             <div className="bg-gray-700/80 text-white px-4 py-2 rounded-lg font-bold text-center">
-              MAPA DEL MUNDO ANTIGUO
+              {isHistoriaChapter ? (
+                <>MAPA DEL MUNDO ANTIGUO</>
+              ) : (
+                <>
+                  {courseConfig[courseId].icon} Panel de {courseConfig[courseId].name}
+                </>
+              )}
             </div>
             <div className="w-[600px] h-[500px]">
-              <WorldMap currentChapter={chapter} />
+              {isHistoriaChapter ? (
+                <WorldMap currentChapter={chapter} />
+              ) : (
+                <CoursePanel course={courseId} chapter={chapter} />
+              )}
             </div>
           </div>
         </div>
@@ -647,15 +986,17 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
   )
 }
 
-function GameQuestions({ onBack, chapter, onComplete }: { 
+function GameQuestions({ onBack, chapter, onComplete, selectedLevel }: { 
   onBack: () => void; 
   chapter: string;
   onComplete: (score: number, totalQuestions: number) => void;
+  selectedLevel: Level;
 }) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [score, setScore] = useState(0)
   const [showResult, setShowResult] = useState(false)
+  const levelConfig = difficultyConfig[selectedLevel]
 
   const questions = {
     Mesopotamia: [
@@ -745,8 +1086,62 @@ function GameQuestions({ onBack, chapter, onComplete }: {
     ],
   }
 
-  const currentQuestions = questions[chapter as keyof typeof questions] || questions["Mesopotamia"]
-  const currentQ = currentQuestions[currentQuestion]
+  const preparedQuestions = useMemo(() => {
+    // Resolver curso por capítulo: Historia conserva sus capítulos reales
+    const historyChapters = ["Mesopotamia", "Egipto", "Esparta", "Atenas", "La Migración"]
+    const isHistory = historyChapters.includes(chapter)
+    // Determinar curso
+    const selectedCourse: CourseId = isHistory
+      ? "historia"
+      : courseThemes.matematica.includes(chapter)
+        ? "matematica"
+        : courseThemes.comunicacion.includes(chapter)
+          ? "comunicacion"
+          : courseThemes.ciencia.includes(chapter)
+            ? "ciencia"
+            : "historia"
+
+    const raw = isHistory
+      ? (questions[chapter as keyof typeof questions] || questions["Mesopotamia"])
+      : (questionsByCourse[selectedCourse][chapter] || [])
+
+    const shuffle = <T,>(arr: T[]) => {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[a[i], a[j]] = [a[j], a[i]]
+      }
+      return a
+    }
+
+    // Si no hay preguntas (caso excepcional), evitar romper el juego
+    const base = raw.length > 0 ? raw : [{ question: "Contenido en construcción, ¡vuelve pronto!", options: ["Ok"], correct: 0 }]
+
+    return base.map(q => {
+      const entries = q.options.map((text, idx) => ({ text, idx }))
+      const maybeShuffled = levelConfig.shuffleOptions ? shuffle(entries) : entries
+      const limit = Math.min(levelConfig.optionsLimit ?? maybeShuffled.length, maybeShuffled.length)
+
+      // Garantizar inclusión de la respuesta correcta
+      const correctEntry = entries[q.correct]
+      const selected: { text: string; idx: number }[] = []
+      selected.push(correctEntry)
+      for (const e of maybeShuffled) {
+        if (selected.length >= limit) break
+        if (e.idx === correctEntry.idx) continue
+        selected.push(e)
+      }
+
+      // Reordenar para no dejar siempre la correcta al inicio si hay shuffle
+      const finalOptions = levelConfig.shuffleOptions ? shuffle(selected) : selected
+      const newOptions = finalOptions.map(o => o.text)
+      const newCorrectIndex = finalOptions.findIndex(o => o.idx === correctEntry.idx)
+
+      return { question: q.question, options: newOptions, correct: newCorrectIndex }
+    })
+  }, [chapter, selectedLevel])
+
+  const currentQ = preparedQuestions[currentQuestion]
 
   const handleAnswerSelect = (answerIndex: number) => {
     setSelectedAnswer(answerIndex)
@@ -757,7 +1152,7 @@ function GameQuestions({ onBack, chapter, onComplete }: {
       setScore(score + 1)
     }
 
-    if (currentQuestion < currentQuestions.length - 1) {
+    if (currentQuestion < preparedQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
       setSelectedAnswer(null)
     } else {
@@ -773,27 +1168,27 @@ function GameQuestions({ onBack, chapter, onComplete }: {
   }
 
   if (showResult) {
-    const minimumScore = Math.ceil(currentQuestions.length * 0.6)
+    const minimumScore = Math.ceil(preparedQuestions.length * levelConfig.passRatio)
     const passed = score >= minimumScore
     
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-900 via-amber-800 to-amber-900 flex items-center justify-center p-6">
-        <div className="bg-amber-100 border-4 border-amber-700 rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
-          <h2 className="text-3xl font-bold text-amber-900 mb-6">
+      <div className="min-h-screen bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-accent)] to-[var(--brand-light)] flex items-center justify-center p-6">
+        <div className="bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-8 max-w-md w-full text-center shadow-2xl">
+          <h2 className="text-3xl font-bold text-[var(--brand-dark)] mb-6">
             {passed ? "¡Quiz Completado!" : "¡No te rindas!"}
           </h2>
           <div className="text-6xl mb-4">
             {passed 
-              ? (score >= currentQuestions.length * 0.8 ? "🏆" : "⭐")
+              ? (score >= preparedQuestions.length * 0.8 ? "🏆" : "⭐")
               : "💪"
             }
           </div>
-          <p className="text-xl text-amber-800 mb-6">
-            Puntuación: {score}/{currentQuestions.length}
+          <p className="text-xl text-[var(--brand-primary)] mb-6">
+            Puntuación: {score}/{preparedQuestions.length}
           </p>
-          <p className="text-lg text-amber-700 mb-8">
+          <p className="text-lg text-[var(--brand-primary)] mb-8">
             {passed
-              ? (score >= currentQuestions.length * 0.8
+              ? (score >= preparedQuestions.length * 0.8
                   ? "¡Excelente! Dominas el tema."
                   : "¡Bien hecho! Sigue estudiando.")
               : `¡Vuelve a intentarlo! Necesitas al menos ${minimumScore} respuestas correctas para continuar. ¡Tú puedes lograrlo!`
@@ -802,21 +1197,21 @@ function GameQuestions({ onBack, chapter, onComplete }: {
           <div className="flex gap-4">
             <Button
               onClick={resetQuiz}
-              className="flex-1 bg-amber-700 hover:bg-amber-600 text-amber-100 font-bold py-3"
+              className="flex-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-[var(--brand-light)] font-bold py-3"
             >
               {passed ? "REINTENTAR" : "VOLVER A INTENTAR"}
             </Button>
             {passed && (
               <Button 
                 onClick={() => {
-                  onComplete(score, currentQuestions.length)
+                  onComplete(score, preparedQuestions.length)
                 }} 
-                className="flex-1 bg-green-700 hover:bg-green-600 text-amber-100 font-bold py-3"
+                className="flex-1 bg-[var(--brand-secondary)] hover:bg-[var(--brand-primary)] text-white font-bold py-3"
               >
                 CONTINUAR
               </Button>
             )}
-            <Button onClick={onBack} className="flex-1 bg-amber-800 hover:bg-amber-700 text-amber-100 font-bold py-3">
+            <Button onClick={onBack} className="flex-1 bg-[var(--brand-dark)] hover:bg-[var(--brand-primary)] text-[var(--brand-light)] font-bold py-3">
               SALIR
             </Button>
           </div>
@@ -826,28 +1221,28 @@ function GameQuestions({ onBack, chapter, onComplete }: {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-900 via-amber-800 to-amber-900 p-6">
+    <div className="min-h-screen bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-accent)] to-[var(--brand-light)] p-6">
       {/* Header */}
-      <div className="bg-amber-900 border-4 border-amber-700 rounded-lg mb-6 p-4 shadow-2xl">
+      <div className="bg-[var(--brand-primary)] border-4 border-[var(--brand-secondary)] rounded-lg mb-6 p-4 shadow-2xl">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-amber-100">{chapter}</h1>
-          <div className="text-amber-100">
-            Pregunta {currentQuestion + 1} de {currentQuestions.length}
+          <h1 className="text-2xl font-bold text-[var(--brand-light)]">{chapter}</h1>
+          <div className="text-[var(--brand-light)]">
+            Pregunta {currentQuestion + 1} de {preparedQuestions.length}
           </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-amber-700 rounded-full h-3 mb-8 overflow-hidden">
+      <div className="bg-[var(--brand-primary)] rounded-full h-3 mb-8 overflow-hidden">
         <div
-          className="bg-yellow-400 h-full transition-all duration-300"
-          style={{ width: `${((currentQuestion + 1) / currentQuestions.length) * 100}%` }}
+          className="bg-[var(--brand-accent)] h-full transition-all duration-300"
+          style={{ width: `${((currentQuestion + 1) / preparedQuestions.length) * 100}%` }}
         />
       </div>
 
       {/* Question Card */}
-      <div className="bg-amber-100 border-4 border-amber-700 rounded-lg p-8 max-w-4xl mx-auto shadow-2xl">
-        <h2 className="text-2xl font-bold text-amber-900 mb-8 text-center">{currentQ.question}</h2>
+      <div className="bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-8 max-w-4xl mx-auto shadow-2xl">
+        <h2 className="text-2xl font-bold text-[var(--brand-dark)] mb-8 text-center">{currentQ.question}</h2>
 
         {/* Answer Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -857,8 +1252,8 @@ function GameQuestions({ onBack, chapter, onComplete }: {
               onClick={() => handleAnswerSelect(index)}
               className={`p-4 rounded-lg border-2 font-semibold text-left transition-all duration-200 ${
                 selectedAnswer === index
-                  ? "bg-amber-600 border-amber-700 text-amber-100 shadow-lg"
-                  : "bg-amber-200 border-amber-400 text-amber-800 hover:bg-amber-300 hover:border-amber-500"
+                  ? "bg-[var(--brand-secondary)] border-[var(--brand-primary)] text-white shadow-lg"
+                  : "bg-[var(--brand-light)] border-[var(--brand-secondary)] text-[var(--brand-dark)] hover:bg-[var(--brand-accent)]/30 hover:border-[var(--brand-secondary)]"
               }`}
             >
               <span className="font-bold mr-3">{String.fromCharCode(65 + index)}.</span>
@@ -876,9 +1271,9 @@ function GameQuestions({ onBack, chapter, onComplete }: {
           <Button
             onClick={handleNextQuestion}
             disabled={selectedAnswer === null}
-            className="bg-amber-700 hover:bg-amber-600 text-amber-100 font-bold px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-secondary)] text-[var(--brand-light)] font-bold px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {currentQuestion < currentQuestions.length - 1 ? "SIGUIENTE" : "FINALIZAR"}
+            {currentQuestion < preparedQuestions.length - 1 ? "SIGUIENTE" : "FINALIZAR"}
           </Button>
         </div>
       </div>
