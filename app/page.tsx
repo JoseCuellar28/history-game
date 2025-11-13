@@ -253,7 +253,7 @@ export default function GameMenu() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-secondary)] to-[var(--brand-light)]">
+    <div className="min-h-screen relative overflow-auto bg-gradient-to-b from-[var(--brand-light)] via-[var(--brand-secondary)] to-[var(--brand-light)]">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-80"
@@ -279,7 +279,7 @@ export default function GameMenu() {
           <img
             src="/images/EduPlay.png"
             alt="EDU PLAY Logo"
-            className="w-[20rem] h-[16rem] md:w-[24rem] md:h-[18rem] lg:w-[28rem] lg:h-[20rem] object-contain drop-shadow-md"
+            className="w-[80vw] max-w-[28rem] md:max-w-[24rem] lg:max-w-[28rem] h-auto object-contain drop-shadow-md"
           />
         </div>
 
@@ -466,9 +466,9 @@ function ChapterSelection({ onBack, onContinue, selectedLevel, onSelectLevel }: 
         <h1 className="text-4xl font-bold text-[var(--brand-light)] text-center tracking-wider">SELECCION DE CURSOS</h1>
       </div>
 
-      <div className="flex gap-6 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
         {/* Sidebar */}
-        <div className="w-80 bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-4 shadow-2xl">
+        <div className="w-full md:w-80 bg-[var(--brand-light)] border-4 border-[var(--brand-accent)] rounded-lg p-4 shadow-2xl">
           <div className="space-y-4">
             {Object.entries(bimestres).map(([bimestreNum, bimestre]) => (
               <div key={bimestreNum} className="space-y-2">
@@ -686,7 +686,7 @@ function CoursePanel({ course, chapter }: { course: CourseId; chapter: string })
   const headerStyle = { backgroundColor: `${config.themeColor}20`, borderColor: config.themeColor }
 
   return (
-    <div className="w-[600px] h-[500px] bg-white/80 border-4 rounded-xl shadow-xl overflow-hidden flex flex-col" style={{ borderColor: config.themeColor }}>
+    <div className="w-full max-w-[600px] h-[65vh] sm:h-[60vh] md:h-[500px] min-h-[320px] bg-white/80 border-4 rounded-xl shadow-xl overflow-hidden flex flex-col" style={{ borderColor: config.themeColor }}>
       <div className="px-4 py-2 font-bold text-[var(--brand-dark)] border-b" style={headerStyle as any}>
         {config.icon} Panel de {config.name}
         <span className="ml-2 text-sm text-gray-600">Tema actual: {chapter}</span>
@@ -793,7 +793,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
   const nextChapter = getNextChapter()
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-auto">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -813,7 +813,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
         </div>
 
         {/* Main Content */}
-        <div className="flex justify-center items-start gap-8 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-center items-start gap-8 max-w-7xl mx-auto">
           {/* Left Side - Mission Board and Action Buttons */}
           <div className="space-y-6 flex-shrink-0">
             <div className="bg-gray-700/80 text-white px-4 py-2 rounded-lg font-bold text-center">
@@ -972,7 +972,7 @@ function GameLobby({ onBack, chapter, onStartGame, chapterProgress, totalScore, 
                 </>
               )}
             </div>
-            <div className="w-[600px] h-[500px]">
+            <div className="w-full max-w-[600px] h-[65vh] sm:h-[60vh] md:h-[500px] min-h-[320px]">
               {isHistoriaChapter ? (
                 <WorldMap currentChapter={chapter} />
               ) : (

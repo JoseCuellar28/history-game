@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Bangers, Open_Sans } from "next/font/google"
 import "./globals.css"
 import "../styles/leaflet.css"
@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "History Game",
   description: "Educational history game",
     generator: 'v0.app'
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
